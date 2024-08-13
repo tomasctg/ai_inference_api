@@ -1,5 +1,5 @@
 import socket
-from typing import Optional
+from typing import Optional, Generator
 
 
 class TCPClient:
@@ -36,6 +36,24 @@ class TCPClient:
                 if self.client_socket:
                     self.client_socket.close()
                 self.client_socket = None
+
+    def send_and_wait_stream(self, message: str, is_stream: bool = False) -> Generator[Optional[str], None, None]:
+        if not self.connected:
+            self.connect()
+        try:
+            self.client_socket.sendall(f"{message}\x00".encode('utf-8'))
+            self.chunked_data.clear()
+            while True:
+                data: Optional[bytes] = self.client_socket.recv(1024)
+                if not data:
+                    break
+                yield data.decode('utf-8')
+            self.close()
+            return ''.join(self.chunked_data)
+        except Exception as e:
+            print(f"Error: {e}")
+            self.close()
+        return None
 
     def send_and_wait(self, message: str) -> Optional[str]:
         if not self.connected:
