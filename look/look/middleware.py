@@ -3,7 +3,7 @@ import json
 
 
 class RequireJSON:
-    def process_request(self, req, resp):
+    async def process_request(self, req, resp):
         if not req.client_accepts_json:
             raise falcon.HTTPNotAcceptable(
                 description='This API only supports responses encoded as JSON.',
@@ -23,7 +23,7 @@ class JSONTranslator:
     # this particular use case; this example serves only to illustrate
     # what is possible.
 
-    def process_request(self, req, resp):
+    async def process_request(self, req, resp):
         # req.stream corresponds to the WSGI wsgi.input environ variable,
         # and allows you to read bytes from the request body.
         #
@@ -32,7 +32,7 @@ class JSONTranslator:
             # Nothing to do
             return
 
-        body = req.bounded_stream.read()
+        body = await req.bounded_stream.read()
         if not body:
             raise falcon.HTTPBadRequest(
                 title='Empty request body',
@@ -52,7 +52,7 @@ class JSONTranslator:
             raise falcon.HTTPBadRequest(
                 title='Malformed JSON', description=description)
 
-    def process_response(self, req, resp, resource, req_succeeded):
+    async def process_response(self, req, resp, resource, req_succeeded):
         if not hasattr(resp.context, 'result'):
             return
 

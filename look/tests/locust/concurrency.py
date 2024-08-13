@@ -7,18 +7,24 @@ class OpenAIMockTest(HttpUser):
         payload = {
             "model": "gpt-4o",
             "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello!"}
-            ]
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant."
+                },
+                {
+                    "role": "user",
+                    "content": "Hello!"
+                }
+            ],
+            "stream": False
         }
         
         headers = {
             "Content-Type": "application/json"
         }
         
-        # Send the POST request
-        response = self.client.post("/v1/chat/completions", json=payload, headers=headers)
-        
-        print(response.text)
-        # Optionally, print the response or perform assertions
-        assert response.status_code == 200
+        with self.client.post("/v1/chat/completions", json=payload, catch_response=True) as response:
+            if response.status_code == 200:
+                response.success()
+            else:
+                response.failure(f"Failed with status code {response.status_code}")

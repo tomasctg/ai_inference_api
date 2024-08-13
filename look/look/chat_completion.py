@@ -2,7 +2,6 @@ import falcon
 import json
 from connection import TCPClient
 import tools as tl
-import time
 
 
 class ChatCompletion:
@@ -11,7 +10,7 @@ class ChatCompletion:
         if not self.tcp_client:
             raise ValueError("Failed to initialize TCPClient")
 
-    def on_post(self, req, resp):
+    async def on_post(self, req, resp):
 
         data = req.context.doc
 
@@ -93,7 +92,7 @@ class ChatCompletion:
                     }]
                 }) + "\n").encode('utf-8')
 
-            resp.stream = stream_content()
+            resp.stream = await stream_content()
         else:
             # Parse the received message content
             response_content = self.tcp_client.send_and_wait(
