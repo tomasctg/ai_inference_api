@@ -19,17 +19,8 @@ class RequireJSON:
 
 
 class JSONTranslator:
-    # NOTE: Normally you would simply use req.media and resp.media for
-    # this particular use case; this example serves only to illustrate
-    # what is possible.
-
     async def process_request(self, req, resp):
-        # req.stream corresponds to the WSGI wsgi.input environ variable,
-        # and allows you to read bytes from the request body.
-        #
-        # See also: PEP 3333
         if req.content_length in (None, 0):
-            # Nothing to do
             return
 
         body = await req.bounded_stream.read()

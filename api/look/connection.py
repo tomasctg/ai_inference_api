@@ -1,5 +1,6 @@
 import socket
-from typing import Optional, Generator
+from typing import Optional, Generator, AsyncGenerator
+import asyncio
 
 
 class TCPClient:
@@ -24,12 +25,12 @@ class TCPClient:
         self.client_socket: socket.socket = socket.socket(
             socket.AF_INET, socket.SOCK_STREAM)
 
-    def connect(self) -> None:
+    async def connect(self) -> None:
         if not self.connected:
             try:
                 if self.client_socket is None:
                     self._create_socket()
-                self.client_socket.connect((self.host, self.port))
+                await asyncio.get_event_loop().sock_connect(self.client_socket, (self.host, self.port))
                 self.connected = True
             except Exception as e:
                 print(f"Failed to connect: {e}")
@@ -37,43 +38,43 @@ class TCPClient:
                     self.client_socket.close()
                 self.client_socket = None
 
-    def send_and_wait_stream(self, message: str, is_stream: bool = False) -> Generator[Optional[str], None, None]:
+    async def send_and_wait_stream(self, message: str, is_stream: bool = False) -> AsyncGenerator[Optional[str], None]:
         if not self.connected:
-            self.connect()
+            await self.connect()
         try:
-            self.client_socket.sendall(f"{message}\x00".encode('utf-8'))
+            await asyncio.get_event_loop().sock_sendall(self.client_socket, f"{message}\x00".encode('utf-8'))
             self.chunked_data.clear()
             while True:
-                data: Optional[bytes] = self.client_socket.recv(1024)
+                data: Optional[bytes] = await asyncio.get_event_loop().sock_recv(self.client_socket, 1024)
                 if not data:
                     break
                 yield data.decode('utf-8')
-            self.close()
-            return ''.join(self.chunked_data)
+            await self.close()
+            # Just end the generator here without returning any value
         except Exception as e:
             print(f"Error: {e}")
-            self.close()
-        return None
+            await self.close()
 
-    def send_and_wait(self, message: str) -> Optional[str]:
+
+    async def send_and_wait(self, message: str) -> Optional[str]:
         if not self.connected:
-            self.connect()
+            await self.connect()
         try:
-            self.client_socket.sendall(f"{message}\x00".encode('utf-8'))
+            await asyncio.get_event_loop().sock_sendall(self.client_socket, f"{message}\x00".encode('utf-8'))
             self.chunked_data.clear()
             while True:
-                data: Optional[bytes] = self.client_socket.recv(1024)
+                data: Optional[bytes] = await asyncio.get_event_loop().sock_recv(self.client_socket, 1024)
                 if not data:
                     break
                 self.chunked_data.append(data.decode('utf-8'))
-            self.close()
+            await self.close()
             return ''.join(self.chunked_data)
         except Exception as e:
             print(f"Error: {e}")
-            self.close()
+            await self.close()
         return None
 
-    def close(self) -> None:
+    async def close(self) -> None:
         if self.connected and self.client_socket:
             self.client_socket.close()
             self.client_socket = None

@@ -11,7 +11,6 @@ class ChatCompletion:
             raise ValueError("Failed to initialize TCPClient")
 
     async def on_post(self, req, resp):
-
         data = req.context.doc
 
         # Validate required fields in the JSON body
@@ -40,7 +39,7 @@ class ChatCompletion:
             resp.status = falcon.HTTP_200
             resp.content_type = 'application/json'
 
-            def stream_content():
+            async def stream_content():
                 yield (json.dumps({
                     "id": id,
                     "object": "chat.completion.chunk",
@@ -59,7 +58,7 @@ class ChatCompletion:
                 }) + "\n").encode('utf-8')
 
                 # Parse the received message content and stream each part
-                for yield_data in self.tcp_client.send_and_wait_stream(user_message):
+                async for yield_data in self.tcp_client.send_and_wait_stream(user_message):
                     json_part = json.loads(yield_data.split('\x00')[0])
                     yield (json.dumps({
                         "id": id,
@@ -92,13 +91,12 @@ class ChatCompletion:
                     }]
                 }) + "\n").encode('utf-8')
 
-            resp.stream = await stream_content()
+            resp.stream = stream_content()
         else:
-            # Parse the received message content
-            response_content = self.tcp_client.send_and_wait(
-                user_message).strip()
+            response_content = await self.tcp_client.send_and_wait(user_message)
 
-            # Split the response by null byte and parse each JSON object
+            response_content = response_content.strip()
+
             parts = response_content.split('\x00')
             combined_message = ""
             for part in parts:
