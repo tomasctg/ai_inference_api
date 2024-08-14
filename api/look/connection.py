@@ -1,5 +1,5 @@
 import socket
-from typing import Optional, Generator, AsyncGenerator
+from typing import Optional, AsyncGenerator
 import asyncio
 
 
